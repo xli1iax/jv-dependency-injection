@@ -26,11 +26,12 @@ public class Injector {
         Object clazzImplementationInstance = null;
 
         for (Field field : fields) {
-            if (!field.getType().isAnnotationPresent(Component.class)) {
-                throw new RuntimeException("@Component annotation is not present in class "
-                        + field.getType().getName());
-            }
             if (field.isAnnotationPresent(Inject.class)) {
+                if (!field.getType().isAnnotationPresent(Component.class)) {
+                    throw new RuntimeException("@Component annotation is not present in class "
+                            + field.getType().getName());
+                }
+
                 Object fieldInstance = getInstance(field.getType());
                 clazzImplementationInstance = createNewInstance(clazz);
                 field.setAccessible(true);
@@ -55,7 +56,16 @@ public class Injector {
         interfaceImplementations.put(ProductParser.class, ProductParserImpl.class);
 
         if (interfaceClazz.isInterface()) {
-            return interfaceImplementations.get(interfaceClazz);
+            Class<?> impl = interfaceImplementations.get(interfaceClazz);
+            if (impl == null) {
+                throw new RuntimeException("No implementation found for interface: "
+                        + interfaceClazz.getName());
+            }
+            return impl;
+        }
+
+        if (!interfaceClazz.isAnnotationPresent(Component.class)) {
+            throw new RuntimeException("Unsupported class: " + interfaceClazz.getName());
         }
 
         return interfaceClazz;
